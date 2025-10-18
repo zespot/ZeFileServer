@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">ZeFileServer</string>
+    <string name="titre">File server</string>
+    <string name="cgu">
+The FileServer application allows you to share a directory on your smartphone. First,
+        you select the directory you wish to share. This directory must not contain any sensitive information.
+Then, you activate your smartphone\'s Mobile Hotspot feature and launch the server.
+Devices connected to the smartphone\'s Mobile Hotspot will then be able to view files
+        in the shared directory by accessing the URL indicated via the Status button.
+I understand that the FileServer application allows a directory I select to be made
+        accessible to devices connected via Wi-Fi to my smartphone\'s Mobile Hotspot.
+        I waive any liability against the publisher of this application in the event of
+        undesirable consequences resulting from the use of this application.
+</string>
+</resources>

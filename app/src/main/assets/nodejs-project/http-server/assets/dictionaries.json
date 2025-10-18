@@ -1,0 +1,10 @@
+{
+  "English": {
+    "menu_titre": "File server",
+    "menu_chg_dir": "Change shared directory"
+  },
+  "Français": {
+    "menu_titre": "Serveur de fichier",
+    "menu_chg_dir": "Changer le répertoire partagé"
+  }
+}

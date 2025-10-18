@@ -1,0 +1,5 @@
+/build
+/assets/
+/jniLibs/
+*.so
+*.bin

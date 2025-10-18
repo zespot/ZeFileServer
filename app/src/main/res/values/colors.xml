@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    val Vert = Color(0xFF009d00)
+    val Rouge = Color(0xFFff0000)
+    val Bleu = Color(0xFF0000FF)
+    val Jaune = Color(0xFFFFCE00)
+    val Gris = Color(0xFF808080)
+    val GrisClair = Color(0xFFA0A0A0)
+    val Noir = Color(0xFF000000)
+    val Blanc = Color(0xFFFFFFFF)
+
+    <color name="Vert">#FF009d00</color>
+    <color name="Rouge">#FFff0000</color>
+    <color name="Bleu">#FF0000FF</color>
+    <color name="Jaune">#FFFFCE00</color>
+    <color name="Gris">#FF808080</color>
+    <color name="GrisClair">#FFA0A0A0</color>
+    <color name="Noir">#000000</color>
+    <color name="Blanc">#FFFFFFFF</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
