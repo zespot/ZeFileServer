@@ -4,6 +4,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');  // ThierryH5p pour exécuter unzip
 const url = require('url');
 const { Readable } = require('stream');
 const buffer = require('buffer');
@@ -112,6 +113,33 @@ module.exports = function createMiddleware(_dir, _options) {
   const weakEtags = opts.weakEtags;
   const handleOptionsMethod = opts.handleOptionsMethod;
 
+  // Fonction pour déterminer le Content-Type en fonction de l'extension
+  function getContentType(ext) {
+    const types = {
+      '.html': 'text/html',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.js': 'application/javascript',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.woff': 'font/woff',
+      '.woff2': 'font/woff2',
+      '.ttf': 'font/ttf',
+      '.eot': 'application/vnd.ms-fontobject',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.ico': 'image/x-icon',
+      '.txt': 'text/plain',
+    };
+
+    console.log("getContentType de ", ext, types[ext]);
+    return types[ext] || 'application/octet-stream';  // Type par défaut
+  }
+
   opts.root = dir;
   if (defaultExt && /^\./.test(defaultExt)) {
     defaultExt = defaultExt.replace(/^\./, '');
@@ -193,13 +221,33 @@ module.exports = function createMiddleware(_dir, _options) {
       status[400](res, next, { error: err });
       return;
     }
+    console.log("MiddleWare pathname=", pathname);
 
-    file = path.normalize(
-      path.join(
-        root,
-        path.relative(path.join('/', baseDir), pathname)
-      )
-    );
+      // Thierryh5p - Réécriture des URLs contenant /assets/tmph5p pour quizz Begum
+
+      // Thierryh5p - Réécriture des URLs contenant /assets/tmph5p pour quizz Begum
+      if (pathname.includes('/assets/tmph5p')) {
+       console.log("TRT H5P Pathname contenant  /assets/tmph5p", pathname );
+       let index = pathname.indexOf('/assets/tmph5p');
+       pathname = pathname.slice(index) ;
+       console.log("TRT H5P Reformatée en : ", pathname);
+      }
+
+
+      // thierryh5p : un a joute un traitement spécifique si l'url commence par /assets
+// Dans ce cas le fichier est dans __dirname et non dans root
+    if (!pathname.startsWith("/assets/")) {
+      file = path.normalize(
+        path.join(
+          root,
+          path.relative(path.join('/', baseDir), pathname)
+        )
+      );
+    }
+    else {
+      file = path.join(__dirname, '..', '..', pathname);
+    }
+
     // determine compressed forms if they were to exist
     gzippedFile = `${file}.gz`;
     brotliFile = `${file}.br`;
@@ -216,8 +264,10 @@ module.exports = function createMiddleware(_dir, _options) {
     // TODO: This check is broken, which causes the 403 on the
     // expected 404.
     if (file.slice(0, root.length) !== root) {
-      status[403](res, next);
-      return;
+      if (!pathname.startsWith("/assets/")) {
+        status[403](res, next);
+        return;
+      }
     }
 
     if (req.method && (req.method !== 'GET' && req.method !== 'HEAD')) {
@@ -250,6 +300,109 @@ module.exports = function createMiddleware(_dir, _options) {
         }
       }
 
+      // Thierryh5p
+      // Servir les assets statiques (JS/CSS + H5P extraits)
+      //console.log("Req.url", req.url);
+      if (req.url.startsWith('/assets/')) {
+        console.log("Traitement d'une requete /assets/");
+        const filePath = path.join(__dirname, '..', '..', 'assets', req.url.substring(7));
+        console.log("filePath =", filePath)
+        if (fs.existsSync(filePath)) {
+          fs.readFile(filePath, (err, data) => {
+            if (!err) {
+              console.log("Fichier  trouvé");
+              const ext = path.extname(filePath);
+              res.writeHead(200, { 'Content-Type': getContentType(ext) });
+              res.end(data);
+            } else {
+              res.writeHead(404);
+              res.end('Fichier non trouvé');
+              console.log("Fichier non trouvé", err);
+            }
+          });
+          return;
+        }
+      }
+
+      // Thierryh5p - servire les fichier h5p
+      else
+        if (req.url.endsWith('.h5p')) {
+          console.log("C'est  un fichier H5P!");
+          //const h5pName = path.basename(req.url, '.h5p');  // "quiz"
+          const h5pName = decodeURIComponent(path.basename(req.url, '.h5p'));
+          const fullFilePath = file;
+          //  const h5pName =path.basename(file, '.h5p');
+          const outputDir = path.join(__dirname, '..', '..', 'assets', 'tmph5p', h5pName);
+          //  const h5pFilePath = decodeURIComponent(req.url);  // "/videos/cours1/mon_quiz.h5p"
+          const h5pFilePath = outputDir
+          console.log("Dans lib/core/index.js, \noutput=", outputDir);
+          console.log("fullFilepath=", fullFilePath);
+
+
+          // Extraire si nécessaire
+
+          // Unzip via adm-zip
+          try {
+            var AdmZip = require("../adm-zip/adm-zip");
+            var zip = new AdmZip(fullFilePath);
+            zip.extractAllTo(outputDir, true);  // true = écrase les fichiers existants
+            console.log("Adm-zip Extraction réussie !");
+          } catch (error) {
+            console.error("Adm-zip Erreur d'extraction :", error);
+            res.writeHead(500);
+            res.end("Adm-zip Erreur lors de l'extraction du H5P.");
+          }
+
+          // Unzip via commande sh
+          /*if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+            try {
+              execSync(`unzip -o "${fullFilePath}" -d "${outputDir}"`);
+            } catch (error) {
+              res.writeHead(500);
+              return res.end(`Erreur d'extraction : ${error.message}`);
+            }
+          }*/
+
+          // Générer la page HTML avec le chemin relatif
+          const relativePath = h5pFilePath.substring(1, h5pFilePath.lastIndexOf('.'));
+          const indexHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+      <meta http-equiv="Pragma" content="no-cache">
+      <meta http-equiv="Expires" content="0">
+      <title>${path.basename(relativePath)}</title>
+    </head>
+    <body>
+      <div id="h5p-container"></div>
+      <script src="/assets/main.bundle.js"></script>
+      <script>
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+        const el = document.getElementById('h5p-container');
+        const options = {
+                h5pJsonPath: '/assets/tmph5p/${h5pName}', // Path to the extracted H5P content
+                frameJs: '/assets/frame.bundle.js', // Path to player's frame.bundle.js
+                frameCss: '/assets/h5p.css', // Path to player's h5p.css
+        };
+        new H5PStandalone.H5P(el, options);
+        });
+
+      </script>
+    </body>
+    </html>
+  `;
+
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(indexHtml);
+          return;
+        }
+        // Fin traitement h5P
+      else
       if (file === gzippedFile) { // is .gz picked up
         res.setHeader('Content-Encoding', 'gzip');
         // strip gz ending and lookup mime type

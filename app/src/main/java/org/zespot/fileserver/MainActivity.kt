@@ -571,7 +571,8 @@ class MainActivity : ComponentActivity() {
                                     command =
                                         arrayOf(
                                             nodePath,
-                                            "$nodeDir/http-server/bin/http-server",
+                                           "$nodeDir/http-server/bin/http-server",
+                                           // Page version "$nodeDir/main.js",
                                             rep,
                                             "--no-dotfiles",
                                             "--port",

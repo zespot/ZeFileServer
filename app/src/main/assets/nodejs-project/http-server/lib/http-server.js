@@ -197,6 +197,38 @@ function HttpServer(options) {
   }
     site.setIcone(path.normalize(logo))
 
+  //Purge du répertoire contenant les fichiers h5p dézipés
+  function purgeDirectory(dirPath) {
+    try {
+      // Vérifie si le dossier existe
+      if (fs.existsSync(dirPath)) {
+        // Lit le contenu du dossier
+        const files = fs.readdirSync(dirPath);
+        // Supprime chaque fichier/dossier
+        files.forEach(file => {
+          const filePath = path.join(dirPath, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isDirectory()) {
+            // Supprime récursivement les sous-dossiers
+            fs.rmSync(filePath, { recursive: true, force: true });
+          } else {
+            // Supprime les fichiers
+            fs.unlinkSync(filePath);
+          }
+        });
+        console.log(`Dossier ${dirPath} purgé.`);
+      } else {
+        // Crée le dossier s'il n'existe pas
+        fs.mkdirSync(dirPath, { recursive: true });
+        console.log(`Dossier ${dirPath} créé.`);
+      }
+    } catch (err) {
+      console.error("Erreur lors de la purge :", err);
+    }
+  }
+  const tmpH5pDir = path.join(__dirname, '..', "/assets/tmph5p");
+  purgeDirectory(tmpH5pDir);
+
 // Titre
 var titre = "File Server"
 if (fs.existsSync(config+"/titre.txt")) {
